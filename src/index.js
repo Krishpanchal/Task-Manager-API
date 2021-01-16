@@ -2,6 +2,9 @@ const express = require("express")
 require("./db/mongoose") //Runs this file first to connect the database
 const User = require("./models/user")
 const Task = require("./models/tasks")
+const { update } = require("./models/user")
+const { response } = require("express")
+const { ReplSet } = require("mongodb")
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -44,6 +47,44 @@ app.get("/users/:id" , async (req, res) => {
     }
 })
 
+app.patch("/users/:id" , async(req, res) => {
+
+    const updates = Object.keys(req.body)
+    const allowedUpdates = ["name" , "email" , "password" , "age"]
+    const isValidOperation = updates.every(updates => allowedUpdates.includes(update))
+
+    if(!isValidOperation){
+        return res.status(400).send({ error : "Invalid Updates!"})
+    }
+
+    try {
+        const user = await User.findByIdAndUpdate(req.params.id , req.body , { new: true , runValidators: true})
+        
+        if(!user){
+            return res.status(404).send()
+        }
+
+        res.send(user) 
+    } catch (e) {
+        res.status(500).send(e)
+    }
+})
+
+app.delete("/users/:id" , async (req, res) => {
+
+    try {
+        const user = await User.findByIdAndDelete(req.params.id)
+
+        if(!user){
+            res.status(404).send()
+        }
+
+        res.send(user)
+    } catch (e) {
+       res.status(500).send() 
+    }
+})
+
 app.post("/tasks" , async (req, res)=>{
     const task = new Task(req.body)
 
@@ -78,6 +119,45 @@ app.get("/tasks/:id" , async (req, res) => {
         res.send(task)
     } catch (e) {
         res.status(500).send(e)
+    }
+})
+
+
+app.patch("/tasks/:id" , async (req, res) => {
+
+    const updates = Object.keys(req.body)
+    const allowedUpdates = ["description", "completed"]
+    const isValidOperation = updates.every( update => allowedUpdates.includes(update))
+
+    if(!isValidOperation){
+        return res.status(400).send({error : "Invalid Update!"})
+    }
+
+    try {
+        const task = await Task.findByIdAndUpdate(req.params.id , req.body , { new: true , runValidators: true })
+        
+        if(!task){
+            return res.status(404).send()
+        }
+
+        res.send(task)
+    } catch (e) {
+        res.status(500).send(e)
+    }
+})
+
+app.delete("/tasks/:id", async (req, res) => {
+
+    try {
+        const task = await Task.findByIdAndDelete(req.params.id)
+
+        if(!task){
+            return res.status(404).send()
+        }
+
+        res.send(task)
+    } catch (e) {
+        res.status(500).send()
     }
 })
 
